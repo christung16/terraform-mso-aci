@@ -4,7 +4,7 @@ By leveraging the advantage of Terraform IaC characteristic, it can be easily an
 
 The repository is to demonstrate how to use Terraform to provision underlay resources, VMM Integration from APIC and overlay resources from MSO in one single config file so that you can easily and consistently build and rebuild a ACI demo everytime. You just need to create different config file for different customers while using the same main.tf. And the config file is structural json format and human readable. You don't even need modify the main.tf if they consume same resources.
 
-Another purpose of this repository is to learn a very consistent way to build your own main.tf. How to handle json type configuration in terraform for network resources.
+Another purpose of this repository is to learn a very consistent way to build your own main.tf. How to handle json type configuration in terraform for network resources. Learn how to manupilate different data structure type which usually used in network environment.
 
 ## Use Case Description
 
@@ -33,6 +33,7 @@ Use "terraform.tfvars.usercase2" and replace "terraform.tfvars". Then, execute t
 
 ## Installation
 
+To build the lab:
 1. Copy terraform.tfvars.usercase1 to terraform.tfvars. Or you can modify it directly for your own case
 2. Modify username/password and IP address for APIC / MSO / VCenter
 3. terraform init
@@ -41,8 +42,9 @@ Use "terraform.tfvars.usercase2" and replace "terraform.tfvars". Then, execute t
 6. Open MSO, click Schema, click template, click "Deploy to Sites" in order to deploy the overlay config to APIC and associate the underlay
 
 To destroy the lab:
+
 7. Open MSO, click Schema, there are "..." under the site, click "Undeploy template" in order to deprovision the overlay config from APIC
-8. terraform destroy --auto-approve --parallelism=1 to destroy the both config from APIC and MSO
+8. "terraform destroy --auto-approve --parallelism=1" to destroy the both config from APIC and MSO
 
 ## Configuration
 
@@ -72,21 +74,83 @@ To destroy the lab:
             url = "<vcenter ip>"   
         }
 
-Be minded that in vmm_vmware section, need to enter the vcenter info:
+2. Be minded that in vmm_vmware section, need to enter the vcenter info:
 
-    vmm_vmware = {
-        gen_com_vswitch = {
-            provider_profile_dn = "uni/vmmp-VMware"
-            name = "gen_com_vswitch"
-            vlan_pool = "gen_com_vlan_pool_1"
-            vcenter_host_or_ip = "<vcenter ip>"
-            vcenter_datacenter_name = "ACI-Datacenter"
-            dvs_version = "6.6"
-            vcenter_usr = "administrator@vsphere.local"
-            vcenter_pwd = "<password>"
-            aaep_name = "aaep_gen_com_vswitch" 
+            vmm_vmware = {
+                gen_com_vswitch = {
+                    provider_profile_dn = "uni/vmmp-VMware"
+                    name = "gen_com_vswitch"
+                    vlan_pool = "gen_com_vlan_pool_1"
+                    vcenter_host_or_ip = "<vcenter ip>"
+                    vcenter_datacenter_name = "ACI-Datacenter"
+                    dvs_version = "6.6"
+                    vcenter_usr = "administrator@vsphere.local"
+                    vcenter_pwd = "<password>"
+                    aaep_name = "aaep_gen_com_vswitch" 
+                }
+            }
+
+3. Map of the Map
+   In .tfvars
+   
+        cdp = {
+            cdp-enable = {
+                name = "gen_com_cdp_enable"
+                admin_st = "enabled"
+            }
+            cdp-disable = {
+                name = "gen_com_cdp_disable"
+                admin_st = "disabled"
+            }
         }
-    }
+
+  Single Resource with for_each
+  In main.tf
+
+        resource "aci_cdp_interface_policy" "cdp" {
+          for_each = var.cdp
+          name = each.value.name
+          admin_st = each.value.admin_st
+        }
+
+4. List in the Map
+   In .tfvars
+
+        bds = {
+            GENERAL_BD1 = {
+                name = "GENERAL_BD1"
+                display_name = "GENERAL_BD1"
+                vrf_name = "GENERAL_VRF"
+                subnets = [ "192.168.100.254/24", "10.207.40.251/24", "10.207.40.252/24" ]
+            }
+        }
+
+  Flatten it and use for_each
+  In main.tf
+
+          bd_subnets = flatten ([
+            for bd_key, bd in var.bds : [
+              for subnet in bd.subnets : {
+                bd_name = bd_key
+                bd_subnet = subnet
+
+              }
+            ]
+          ])
+
+        resource "mso_schema_template_bd" "bds" {
+          for_each = var.bds
+          schema_id = mso_schema.schema.id
+          template_name = var.template_name
+          name = each.value.name
+          display_name = each.value.display_name
+          vrf_name = each.value.vrf_name
+          layer2_unknown_unicast = "proxy"
+          layer2_stretch = true
+          depends_on = [
+            mso_schema_template_vrf.vrfs,
+          ]
+        }
 
 ## How to test
 
@@ -100,22 +164,9 @@ Be minded that in vmm_vmware section, need to enter the vcenter info:
 ## Known issues:
 
 1. terraform apply need to use "parallelism=1" since MSO has a lot of dependancy
-2. In the key-value pair, key's name has to be same as "name = "
-
-For example:
-    epgs = {
-        WEB_EPG = {         // <<== The "key" same as the "name" below
-            name = "WEB_EPG"
-            display_name = "WEB_EPG"
-            anp_name = "ABC_AP" 
-            bd_name = "ABC_BD1"
-            vrf_name = "ABC_VRF"
-            dn = "abc_com_vswitch"
-        }
-
-3. After successfully applied, you need to manually map the upnlink into the vmnic 
-4. When destroy the resource, remember to "Undeploy template" first
-5. There are still missing a lot of advance features like lacp, vpc, pbr, service graph, etc. You can try to build your own and share it out.
+2. After successfully applied, you need to manually map the upnlink into the vmnic 
+3. When destroy the resource, remember to "Undeploy template" first
+4. There are still missing a lot of advance features like lacp, vpc, pbr, service graph, etc. You can try to build your own and share it out.
     
 ## Getting help
 
