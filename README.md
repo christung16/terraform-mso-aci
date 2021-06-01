@@ -1,6 +1,6 @@
 ## Terraform Config for ACI and MSO
 
-Imagine you need to build ACI/MSO for different customers, unavoidably you need to config both underlay and overlay. Normally, we need to do the configuration on two controllers, APIC for underlay and MSO for overlay. It usually gives confusion to customer. And also, it takes time to rebuild the PoC for different customers.
+By leveraging the advantage of Terraform IaC characteristic, it can be easily and consistently build and rebuild the ACI/MSO VMM integration PoC. It also integrates both controllers config into a single configuration file (.tfvars). It is much more human readable and easily to make the changes.
 
 The repository is to demonstrate how to use Terraform to provision underlay resources, VMM Integration from APIC and overlay resources from MSO in one single config file so that you can easily and consistently build and rebuild a ACI demo everytime. You just need to create different config file for different customers while using the same main.tf. And the config file is structural json format and human readable. You don't even need modify the main.tf if they consume same resources.
 
@@ -20,11 +20,16 @@ A company call "General Company" wants a VMM integration and build a simple two 
 
 Use "terraform.tfvars.usercase1" and replace "terraform.tfvars". Then, execute the terraform apply
 
+![image](https://user-images.githubusercontent.com/21293832/120370018-ab0fd280-c346-11eb-91b9-aac9fadbfc5d.png)
+
 Case 2:
 
 A company call "ABC Company" wants a VMM integration and build a three tier application while Web to App allow tcp port 55555 and App to Database allow port 3306 only.
 
 Use "terraform.tfvars.usercase2" and replace "terraform.tfvars". Then, execute the terraform apply
+
+![image](https://user-images.githubusercontent.com/21293832/120368766-0e990080-c345-11eb-97bc-3eab7a727a49.png)
+
 
 ## Installation
 
@@ -33,10 +38,15 @@ Use "terraform.tfvars.usercase2" and replace "terraform.tfvars". Then, execute t
 3. terraform init
 4. terraform plan
 5. terraform apply --auto-approve --parallelism=1
+6. Open MSO, click Schema, click template, click "Deploy to Sites" in order to deploy the overlay config to APIC and associate the underlay
+
+To destroy the lab:
+7. Open MSO, click Schema, there are "..." under the site, click "Undeploy template" in order to deprovision the overlay config from APIC
+8. terraform destroy --auto-approve --parallelism=1 to destroy the both config from APIC and MSO
 
 ## Configuration
 
-- Copy terraform.tfvars.usercase1 terraform.tfvars.usercase2 or to terraform.tfvars. 
+- Copy terraform.tfvars.usercase1 or terraform.tfvars.usercase2 to terraform.tfvars. 
 - Build you own Use case by modifying terraform.tfvars
 
 ## Usage
@@ -80,8 +90,13 @@ vmm_vmware = {
 
 ## How to test
 
-1. You need to have ACI and UCS with VMware/Vcenter installed
+1. You need to have ACI, MSO and UCS with VMware/Vcenter installed
 
+## How to destroy the resources
+
+    1. Open MSO, click Schema, there are "..." under the site, choose Undeploy Template. Otherwise you can't destroy the resouces correctly
+    2. terraform destroy --auto-approve --parallelism=1
+    
 ## Known issues:
 
 1. terraform apply need to use "parallelism=1" since MSO has a lot of dependancy
@@ -99,7 +114,9 @@ epgs = {
     }
 
 3. After successfully applied, you need to manually map the upnlink into the vmnic 
-
+4. When destroy the resource, remember to "Undeploy template" first
+5. There are still missing a lot of advance features like lacp, vpc, pbr, service graph, etc. You can try to build your own and share it out.
+    
 ## Getting help
 
 Instruct users how to get help with this code; this might include links to an issues list, wiki, mailing list, etc.
