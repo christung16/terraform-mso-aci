@@ -53,40 +53,40 @@ To destroy the lab:
 
 1. Modify username/password and URL
 
-mso_user = {
-    username = "admin"
-    password = "<password>"  // for office lab
-    url = "https://<mso ip>"
+    mso_user = {
+        username = "admin"
+        password = "<password>"  // for office lab
+        url = "https://<mso ip>"
 
-}
+    }
 
-aci_user = {
-    username = "admin"
-    password = "<password>"
-    url = "https://<apic ip>"
-}
+    aci_user = {
+        username = "admin"
+        password = "<password>"
+        url = "https://<apic ip>"
+    }
 
-vcenter_user = {
-    username = "administrator@vsphere.local"
-    password = "<password>"
-    url = "<vcenter ip>"   
-}
+    vcenter_user = {
+        username = "administrator@vsphere.local"
+        password = "<password>"
+        url = "<vcenter ip>"   
+    }
 
 Be minded that in vmm_vmware section, need to enter the vcenter info:
 
-vmm_vmware = {
-    gen_com_vswitch = {
-        provider_profile_dn = "uni/vmmp-VMware"
-        name = "gen_com_vswitch"
-        vlan_pool = "gen_com_vlan_pool_1"
-        vcenter_host_or_ip = "<vcenter ip>"
-        vcenter_datacenter_name = "ACI-Datacenter"
-        dvs_version = "6.6"
-        vcenter_usr = "administrator@vsphere.local"
-        vcenter_pwd = "<password>"
-        aaep_name = "aaep_gen_com_vswitch" 
+    vmm_vmware = {
+        gen_com_vswitch = {
+            provider_profile_dn = "uni/vmmp-VMware"
+            name = "gen_com_vswitch"
+            vlan_pool = "gen_com_vlan_pool_1"
+            vcenter_host_or_ip = "<vcenter ip>"
+            vcenter_datacenter_name = "ACI-Datacenter"
+            dvs_version = "6.6"
+            vcenter_usr = "administrator@vsphere.local"
+            vcenter_pwd = "<password>"
+            aaep_name = "aaep_gen_com_vswitch" 
+        }
     }
-}
 
 ## How to test
 
@@ -94,8 +94,8 @@ vmm_vmware = {
 
 ## How to destroy the resources
 
-    1. Open MSO, click Schema, there are "..." under the site, choose Undeploy Template. Otherwise you can't destroy the resouces correctly
-    2. terraform destroy --auto-approve --parallelism=1
+1. Open MSO, click Schema, there are "..." under the site, choose Undeploy Template. Otherwise you can't destroy the resouces correctly
+2. terraform destroy --auto-approve --parallelism=1
     
 ## Known issues:
 
@@ -103,15 +103,15 @@ vmm_vmware = {
 2. In the key-value pair, key's name has to be same as "name = "
 
 For example:
-epgs = {
-    WEB_EPG = {         // <<== The "key" same as the "name" below
-        name = "WEB_EPG"
-        display_name = "WEB_EPG"
-        anp_name = "ABC_AP" 
-        bd_name = "ABC_BD1"
-        vrf_name = "ABC_VRF"
-        dn = "abc_com_vswitch"
-    }
+    epgs = {
+        WEB_EPG = {         // <<== The "key" same as the "name" below
+            name = "WEB_EPG"
+            display_name = "WEB_EPG"
+            anp_name = "ABC_AP" 
+            bd_name = "ABC_BD1"
+            vrf_name = "ABC_VRF"
+            dn = "abc_com_vswitch"
+        }
 
 3. After successfully applied, you need to manually map the upnlink into the vmnic 
 4. When destroy the resource, remember to "Undeploy template" first
