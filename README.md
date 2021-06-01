@@ -90,7 +90,9 @@ To destroy the lab:
                 }
             }
 
-3. Map of the Map
+### Learn how to manipulate the data structures which commonly used in network environment
+
+1. Map in the Map
    In .tfvars
    
         cdp = {
@@ -113,7 +115,7 @@ To destroy the lab:
           admin_st = each.value.admin_st
         }
 
-4. List in the Map
+2. List in the Map
    In .tfvars
 
         bds = {
@@ -163,7 +165,7 @@ To destroy the lab:
     
 ## Known issues:
 
-1. terraform apply need to use "parallelism=1" since MSO has a lot of dependancy
+1. terraform apply need to use "parallelism=1" due to MSO limitation
 2. After successfully applied, you need to manually map the upnlink into the vmnic 
 3. When destroy the resource, remember to "Undeploy template" first
 4. There are still missing a lot of advance features like lacp, vpc, pbr, service graph, etc. You can try to build your own and share it out.
