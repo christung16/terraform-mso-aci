@@ -53,24 +53,24 @@ To destroy the lab:
 
 1. Modify username/password and URL
 
-    mso_user = {
-        username = "admin"
-        password = "<password>"  // for office lab
-        url = "https://<mso ip>"
+        mso_user = {
+            username = "admin"
+            password = "<password>"  // for office lab
+            url = "https://<mso ip>"
 
-    }
+        }
 
-    aci_user = {
-        username = "admin"
-        password = "<password>"
-        url = "https://<apic ip>"
-    }
+        aci_user = {
+            username = "admin"
+            password = "<password>"
+            url = "https://<apic ip>"
+        }
 
-    vcenter_user = {
-        username = "administrator@vsphere.local"
-        password = "<password>"
-        url = "<vcenter ip>"   
-    }
+        vcenter_user = {
+            username = "administrator@vsphere.local"
+            password = "<password>"
+            url = "<vcenter ip>"   
+        }
 
 Be minded that in vmm_vmware section, need to enter the vcenter info:
 
