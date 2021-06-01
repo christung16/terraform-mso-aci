@@ -72,7 +72,7 @@ vmm_vmware = {
         provider_profile_dn = "uni/vmmp-VMware"
         name = "gen_com_vswitch"
         vlan_pool = "gen_com_vlan_pool_1"
-        vcenter_host_or_ip = "<VCenter ip>"
+        vcenter_host_or_ip = "<vcenter ip>"
         vcenter_datacenter_name = "ACI-Datacenter"
         dvs_version = "6.6"
         vcenter_usr = "administrator@vsphere.local"
@@ -92,7 +92,7 @@ access_port_group_policy = {
         from_card = 1
         from_port = 20
         to_card = 1
-        to_port =20
+        to_port = 20
     }
 }
 
@@ -100,6 +100,7 @@ access_port_group_policy = {
 
 template_name = "General_Company_Template"
 schema_name = "General_Company_Schema"
+mso_site = "aci-site1"
 
 anps = {
     GENERAL_AP = {

@@ -1,4 +1,4 @@
-variable "user" {
+variable "mso_user" {
   description = "Login Information"
   type = map(any)
 }
@@ -9,6 +9,10 @@ variable "aci_user" {
 
 variable "vcenter_user" {
   type = map(any)
+}
+
+variable "mso_site" {
+  type = string
 }
 
 variable "template_name" {

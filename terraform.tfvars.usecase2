@@ -22,45 +22,45 @@ vcenter_user = {
 // Underlay config in APIC
 
 tenant = {
-    name = "General_Company_Tenant"
+    name = "ABC_Company_Tenant"
     description = "Tenant Created by Terraform"
 }
 
 cdp = {
     cdp-enable = {
-        name = "gen_com_cdp_enable"
+        name = "abc_com_cdp_enable"
         admin_st = "enabled"
     }
     cdp-disable = {
-        name = "gen_com_cdp_disable"
+        name = "abc_com_cdp_disable"
         admin_st = "disabled"
     }
 }
 
 lldp = {
     lldp-enable = {
-        name = "gen_com_lldp_enable"
-        description = "gen_com_lldp_enable"
+        name = "abc_com_lldp_enable"
+        description = "abc_com_lldp_enable"
         admin_tx_st = "enabled"
         admin_rx_st = "enabled"
     }
     lldp-disable = {
-        name = "gen_com_lldp_disable"
-        description = "gen_com_lldp_disable"
+        name = "abc_com_lldp_disable"
+        description = "abc_com_lldp_disable"
         admin_tx_st = "disabled"
         admin_rx_st = "disabled"
     }
 }
 
 vlan_pool = {
-    gen_com_vlan_pool_1 = {
-        name = "gen_com_vlan_pool_1"
+    abc_com_vlan_pool_1 = {
+        name = "abc_com_vlan_pool_1"
         alloc_mode = "dynamic"
         from = "vlan-2001"
         to = "vlan-3000"
     }
-    gen_com_vlan_pool_2 = {
-        name = "gen_com_vlan_pool_2"
+    abc_com_vlan_pool_2 = {
+        name = "abc_com_vlan_pool_2"
         alloc_mode = "dynamic"
         from = "vlan-3001"
         to = "vlan-3900"
@@ -68,25 +68,25 @@ vlan_pool = {
 }
 
 vmm_vmware = {
-    gen_com_vswitch = {
+    abc_com_vswitch = {
         provider_profile_dn = "uni/vmmp-VMware"
-        name = "gen_com_vswitch"
-        vlan_pool = "gen_com_vlan_pool_1"
-        vcenter_host_or_ip = "<VCenter ip>"
+        name = "abc_com_vswitch"
+        vlan_pool = "abc_com_vlan_pool_1"
+        vcenter_host_or_ip = "<vcenter ip>"
         vcenter_datacenter_name = "ACI-Datacenter"
         dvs_version = "6.6"
         vcenter_usr = "administrator@vsphere.local"
         vcenter_pwd = "<password>"
-        aaep_name = "aaep_gen_com_vswitch" 
+        aaep_name = "aaep_abc_com_vswitch" 
     }
 }
 
 access_port_group_policy = {
     leaf_access_port_101_1_20_vmm_vcenter = {
         name = "leaf_access_port_101_1_20_vmm_vcenter"
-        lldp_status = "gen_com_lldp_disable"
-        cdp_status = "gen_com_cdp_enable"
-        aaep_name = "aaep_gen_com_vswitch"
+        lldp_status = "abc_com_lldp_disable"
+        cdp_status = "abc_com_cdp_enable"
+        aaep_name = "aaep_abc_com_vswitch"
         leaf_profile = "leaf-101-Chris-profile"
         leaf_block = 101
         from_card = 1
@@ -98,29 +98,30 @@ access_port_group_policy = {
 
 // Overlay config in MSO
 
-template_name = "General_Company_Template"
-schema_name = "General_Company_Schema"
+template_name = "ABC_Company_Template"
+schema_name = "ABC_Company_Schema"
+mso_site = "aci-site1"
 
 anps = {
-    GENERAL_AP = {
-        name = "GENERAL_AP"
-        display_name = "GENERAL_AP"
+    ABC_AP = {
+        name = "ABC_AP"
+        display_name = "ABC_AP"
     }
 }
 
 vrfs = {
-    GENERAL_VRF = {
-        name = "GENERAL_VRF"
-        display_name = "GENERAL_VRF"
+    ABC_VRF = {
+        name = "ABC_VRF"
+        display_name = "ABC_VRF"
     }
 }
 
 bds = {
-    GENERAL_BD1 = {
-        name = "GENERAL_BD1"
-        display_name = "GENERAL_BD1"
-        vrf_name = "GENERAL_VRF"
-        subnets = [ "192.168.100.254/24", "10.207.40.251/24", "10.207.40.252/24" ]
+    ABC_BD1 = {
+        name = "ABC_BD1"
+        display_name = "ABC_BD1"
+        vrf_name = "ABC_VRF"
+        subnets = [ "10.0.0.254/24" ]
     }
 }
 
@@ -128,18 +129,26 @@ epgs = {
     WEB_EPG = {
         name = "WEB_EPG"
         display_name = "WEB_EPG"
-        anp_name = "GENERAL_AP" 
-        bd_name = "GENERAL_BD1"
-        vrf_name = "GENERAL_VRF"
-        dn = "gen_com_vswitch"
+        anp_name = "ABC_AP" 
+        bd_name = "ABC_BD1"
+        vrf_name = "ABC_VRF"
+        dn = "abc_com_vswitch"
     }
     DATABASE_EPG = {
         name = "DATABASE_EPG"
         display_name = "DATABASE_EPG"
-        anp_name = "GENERAL_AP" 
-        bd_name = "GENERAL_BD1"
-        vrf_name = "GENERAL_VRF"
-        dn = "gen_com_vswitch"
+        anp_name = "ABC_AP" 
+        bd_name = "ABC_BD1"
+        vrf_name = "ABC_VRF"
+        dn = "abc_com_vswitch"
+    }
+    APP_EPG = {
+        name = "APP_EPG"
+        display_name = "APP_EPG"
+        anp_name = "ABC_AP" 
+        bd_name = "ABC_BD1"
+        vrf_name = "ABC_VRF"
+        dn = "abc_com_vswitch"
     }
 
 }
@@ -154,15 +163,15 @@ filters = {
         ip_protocol = "unspecified"
         stateful = false
     }
-    tcp_40000 = {
-        name = "tcp_40000"
-        display_name = "tcp_40000"
-        entry_name = "tcp_40000"
-        entry_display_name = "tcp_40000"
+    tcp_3306 = {
+        name = "tcp_3306"
+        display_name = "tcp_3306"
+        entry_name = "tcp_3306"
+        entry_display_name = "tcp_3306"
         ether_type = "ip"
         ip_protocol = "tcp"
-        destination_from = 40000
-        destination_to = 40000
+        destination_from = 3306
+        destination_to = 3306
         stateful=true
     }
     icmp = {
@@ -177,9 +186,9 @@ filters = {
 }
 
 contracts = {
-    Con_WEB_EPG_to_DATABASE_EPG = {
-        contract_name = "Con_WEB_EPG_to_DATABASE_EPG"
-        display_name = "Con_WEB_EPG_to_DATABASE_EPG"
+    Con_WEB_EPG_to_APP_EPG = {
+        contract_name = "Con_WEB_EPG_to_APP_EPG"
+        display_name = "Con_WEB_EPG_to_APP_EPG"
         filter_type = "bothWay"
         scope = "tenant"
         filter_relationships = {
@@ -187,20 +196,38 @@ contracts = {
         }
         directives = [ "none" ]
         anp_epg_consumer = {
-            anp_name = "GENERAL_AP"
+            anp_name = "ABC_AP"
             epg_name = "WEB_EPG"
         }
         anp_epg_provider = {
-            anp_name = "GENERAL_AP"
+            anp_name = "ABC_AP"
+            epg_name = "APP_EPG"
+        }
+    }
+    Con_APP_EPG_to_DATABASE_EPG = {
+        contract_name = "Con_APP_EPG_to_DATABASE_EPG"
+        display_name = "Con_APP_EPG_to_DATABASE_EPG"
+        filter_type = "bothWay"
+        scope = "tenant"
+        filter_relationships = {
+            filter_name = "tcp_3306"
+        }
+        directives = [ "none" ]
+        anp_epg_consumer = {
+            anp_name = "ABC_AP"
+            epg_name = "APP_EPG"
+        }
+        anp_epg_provider = {
+            anp_name = "ABC_AP"
             epg_name = "DATABASE_EPG"
         }
     }
 }
 
 l3outs = {
-    GENERAL_L3Out_p2700 = {
+    ABC_L3Out_p2700 = {
         name ="GENERIC_L3Out_p2700"
-        vrf_name = "GENERAL_VRF"
+        vrf_name = "ABC_VRF"
         subnets = {
             "10.100.3.0/24" = ["shared-rtctrl", "export-rtctrl"]
             "10.200.3.0/24" = ["shared-rtctrl"]

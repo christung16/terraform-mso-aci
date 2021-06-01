@@ -16,9 +16,9 @@ terraform {
 }
 
 provider "mso" {
-  username = var.user.username
-  password = var.user.password
-  url      = var.user.url
+  username = var.mso_user.username
+  password = var.mso_user.password
+  url      = var.mso_user.url
   insecure = true
 }
 
@@ -125,20 +125,8 @@ module "accessportgroup" {
 
 
 data "mso_site" "site1" {
-  name = "aci-site1"
+  name = var.mso_site
 }
-
-locals {
-  #hkjc_site_id = data.mso_site.site1.id
-  #hkjc_tenant_id = mso_tenant.tn.id
-  #hkjc_template_name = var.template_name
-  #hkjc_schema_id = mso_schema.schema.id
-  #hkjc_vrf_name = mso_schema_template_vrf.VRF_DMZ_ITOB_A.name
-  #hkjc_anp_name = mso_schema_template_anp.EWIN_AP.name
-  #hkjc_ewin_bd_name = mso_schema_template_bd.EWIN_BD.name
-  #hkjc_ewin_common_bd_name = mso_schema_template_bd.EWIN_Common_BD.name
-}
-
 
 locals {
   bd_subnets = flatten ([
