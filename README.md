@@ -140,17 +140,18 @@ To destroy the lab:
             ]
           ])
 
-        resource "mso_schema_template_bd" "bds" {
-          for_each = var.bds
+        resource "mso_schema_template_bd_subnet" "bd_subnets" {
+          for_each = {
+            for subnet in local.bd_subnets: "${subnet.bd_name}.${subnet.bd_subnet}" => subnet
+          }
           schema_id = mso_schema.schema.id
           template_name = var.template_name
-          name = each.value.name
-          display_name = each.value.display_name
-          vrf_name = each.value.vrf_name
-          layer2_unknown_unicast = "proxy"
-          layer2_stretch = true
+          bd_name = each.value.bd_name
+          ip = each.value.bd_subnet
+          scope = "public"
+          shared = true
           depends_on = [
-            mso_schema_template_vrf.vrfs,
+            mso_schema_template_bd.bds
           ]
         }
 
