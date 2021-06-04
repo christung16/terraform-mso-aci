@@ -1,3 +1,5 @@
+# AUTHOR(s): Chris Tung <yitung@cisco.com>
+
 variable "mso_user" {
   description = "Login Information"
   type = map(any)

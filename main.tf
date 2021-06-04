@@ -1,3 +1,5 @@
+# AUTHOR(s): Chris Tung <yitung@cisco.com>
+
 terraform {
   required_providers {
     mso = {
@@ -337,11 +339,11 @@ resource "mso_schema_template_anp_epg_contract" "anp_epg_contract_consumer" {
   contract_name = each.value.contract_name
   relationship_type = "consumer"
   depends_on = [
-#    mso_schema.schema,
     mso_schema_template_contract.template_contract,
     mso_schema_template_anp_epg.epgs,
     mso_schema_template_anp.anps,
-    mso_schema_template_anp_epg_contract.anp_epg_contract_provider
+
+
   ]
 }
 
@@ -373,6 +375,79 @@ resource "mso_schema_template_external_epg" "ext_epg" {
     mso_schema_template_l3out.l3out,
   ]
 }
+
+resource "mso_schema_template_service_graph" "sg" {
+  for_each = var.sg
+  schema_id = mso_schema.schema.id
+  template_name = var.template_name
+  service_graph_name = each.value.name
+  service_node_type = each.value.service_node_type
+  description = each.value.description
+
+  dynamic "site_nodes" {
+    for_each = each.value.site_nodes
+    content {
+      site_id = mso_schema_site.schema_site1.id
+      tenant_name = site_nodes.value.tenant_name
+      node_name = site_nodes.value.node_name
+    }
+  }
+  depends_on = [
+    mso_tenant.tn
+  ]
+}
+
+resource "mso_schema_template_deploy" "this" {
+  schema_id = mso_schema_site.schema_site1.schema_id
+  template_name = var.template_name
+  site_id = mso_schema_site.schema_site1.site_id
+  depends_on = [
+    mso_schema_template_service_graph.sg,
+    mso_schema_template_external_epg.ext_epg,
+    mso_schema_template_anp_epg.epgs,
+    mso_schema_template_anp_epg_contract.anp_epg_contract_provider,
+    mso_schema_template_anp_epg_contract.anp_epg_contract_consumer,
+    mso_schema_template_vrf.vrfs,
+    mso_schema_template_l3out.l3out,
+    mso_schema_template_bd_subnet.bd_subnets,
+    mso_schema_template_external_epg.ext_epg,
+    mso_schema_template_service_graph.sg,
+  ]
+}
+
+data "aci_tenant" "this" {
+  name = var.tenant.name
+}
+
+################################################
+#Create L4-L7 Device on APIC in current release
+################################################
+
+/*
+# Create L4-L7 Device.
+resource "aci_rest" "device" {
+    for_each = var.sg
+    path    = "api/node/mo/${data.aci_tenant.this.id}/lDevVip-${each.value.name}.json"
+    payload = templatefile(
+        "${path.module}/template.json",
+        {
+#            annotation          = var.annotation
+            tenant_dn           = data.aci_tenant.this.id
+            device_name         = each.value.device_name
+            vmm_domain_dn       = aci_vmm_domain.vmm_domain["gen_com_vswitch"].id
+            vmm_controller_dn   = aci_vmm_controller.gen_com_ctrl["gen_com_vswitch"].id
+            vmm_controller_name = "gen_com_vswitch-controller"
+            vm_name             = each.value.name
+            internal_vnic       = "vmnic3"
+            external_vnic       = "vmnic3"
+        }
+    )
+}
+*/
+
+
+
+
 
 /*
 resource "mso_schema_template_external_epg_subnet" "ext_subnet" {

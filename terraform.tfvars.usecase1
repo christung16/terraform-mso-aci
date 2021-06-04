@@ -1,3 +1,5 @@
+# AUTHOR(s): Chris Tung <yitung@cisco.com>
+
 mso_user = {
     username = "admin"
     password = "<password>"  // your MSO password
