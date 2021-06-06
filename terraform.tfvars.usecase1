@@ -73,12 +73,6 @@ vlan_pool = {
         from = "vlan-2501"
         to = "vlan-2501"
     }
-    f5_phy_vlan_pool = {
-        name = "f5_phy_vlan_pool"
-        alloc_mode = "static"
-        from = "vlan-2601"
-        to = "vlan-2601"
-    }
 }
 
 vmm_vmware = {
@@ -86,7 +80,7 @@ vmm_vmware = {
         provider_profile_dn = "uni/vmmp-VMware"
         name = "gen_com_vswitch"
         vlan_pool = "gen_com_vlan_pool_1"
-        vcenter_host_or_ip = "<vcenter ip>"
+        vcenter_host_or_ip = "<VCenter ip>"
         vcenter_datacenter_name = "ACI-Datacenter"
         dvs_version = "6.6"
         vcenter_usr = "administrator@vsphere.local"
@@ -217,26 +211,22 @@ epgs = {
         vrf_name = "GENERAL_VRF"
         dn = "gen_com_vswitch"
     }
-
 }
 
 filters = {
     filter_all = {
         name = "filter_all"
-        display_name = "filter_all"
-        entry_name = "filter_all"
-        entry_display_name = "filter_all"
+        display_name = "filter_all_display_name"
+        entry_name = "filter_all_entry_name"
+        entry_display_name = "filter_all_entry_display_name"
         ether_type = "unspecified"
         ip_protocol = "unspecified"
         destination_from = "unspecified"
-        destination_to = "unscpecified"
+        destination_to = "unspecified"
         stateful = false
     }
     tcp_40000 = {
         name = "tcp_40000"
-        display_name = "tcp_40000"
-        entry_name = "tcp_40000"
-        entry_display_name = "tcp_40000"
         ether_type = "ip"
         ip_protocol = "tcp"
         destination_from = "40000"
@@ -245,24 +235,24 @@ filters = {
     }
     icmp = {
         name = "icmp"
-        display_name = "icmp"
-        entry_name = "icmp"
-        entry_display_name = "icmp"
         ether_type = "ip"
         ip_protocol = "icmp"
-        destination_from = "unspecified"
-        destination_to = "unscpecified"
         stateful=false
     }
     tcp_22 = {
         name = "tcp_22"
-        display_name = "tcp_22"
-        entry_name = "tcp_22"
-        entry_display_name = "tcp_22"
         ether_type = "ip"
         ip_protocol = "tcp"
-        destination_from = "22"
-        destination_to = "22"
+        destination_from = "ssh"
+        destination_to = "ssh"
+        stateful=true
+    }
+    tcp_3306 = {
+        name = "tcp_3306"
+        ether_type = "ip"
+        ip_protocol = "tcp"
+        destination_from = "3306"
+        destination_to = "3306"
         stateful=true
     }
 }
@@ -274,8 +264,9 @@ contracts = {
         filter_type = "bothWay"
         scope = "tenant"
         filter_relationships = {
-            filter_name = "icmp"
+            filter_name = "tcp_40000"
         }
+        filter_list = [ "icmp", "tcp_22" ]
         directives = [ "none" ]
         anp_epg_consumer = {
             anp_name = "GENERAL_AP"

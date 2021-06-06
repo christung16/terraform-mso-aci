@@ -301,17 +301,41 @@ resource "mso_schema_template_filter_entry" "filter_entry" {
   schema_id = mso_schema.schema.id
   template_name = var.template_name
   name = each.value.name
-  display_name = each.value.display_name
-  entry_name = each.value.entry_name
-  entry_display_name = each.value.entry_display_name
-  ether_type = each.value.ether_type
-  ip_protocol = each.value.ip_protocol
-  destination_from = each.value.destination_from
-  destination_to = each.value.destination_to
+  display_name = try (each.value.display_name, each.value.name)
+  entry_name = try (each.value.entry_name, each.value.name)
+  entry_display_name = try (each.value.entry_display_name, each.value.name)
+  ether_type = try (each.value.ether_type, "unspecified")
+  ip_protocol = try (each.value.ip_protocol, "unspecified")
+  destination_from = try (each.value.destination_from, "unspecified")
+  destination_to = try (each.value.destination_to, "unspecified")
   stateful = each.value.stateful
-#  depends_on = [
-#    mso_schema.schema
-#  ]
+}
+
+locals {
+ contract_filter = flatten ([
+    for contract_name, contract in var.contracts : [
+      for filter_name in contract.filter_list : {
+        contract_name = contract_name
+        filter_name = filter_name
+      }
+    ]
+  ])
+}
+
+resource "mso_schema_template_contract_filter" "con_filter" {
+  for_each = {
+    for filter_name in local.contract_filter: "${filter_name.contract_name}.${filter_name.filter_name}" => filter_name
+  }
+  schema_id = mso_schema.schema.id
+  template_name = var.template_name
+  contract_name = each.value.contract_name
+  filter_type = "bothWay"
+  filter_name = each.value.filter_name
+  directives = [ "none" ]
+  depends_on = [
+    mso_schema_template_filter_entry.filter_entry,
+    mso_schema_template_contract.template_contract,
+  ]
 }
 
 resource "mso_schema_template_contract" "template_contract" {
@@ -358,8 +382,6 @@ resource "mso_schema_template_anp_epg_contract" "anp_epg_contract_consumer" {
     mso_schema_template_contract.template_contract,
     mso_schema_template_anp_epg.epgs,
     mso_schema_template_anp.anps,
-
-
   ]
 }
 
@@ -417,7 +439,7 @@ resource "mso_schema_template_service_graph" "sg" {
 */
 
 resource "mso_schema_template_deploy" "this" {
-  schema_id = mso_schema_site.schema_site1.schema_id
+  schema_id = mso_schema.schema.id
   template_name = var.template_name
   site_id = mso_schema_site.schema_site1.site_id
   depends_on = [
@@ -430,6 +452,8 @@ resource "mso_schema_template_deploy" "this" {
     mso_schema_template_l3out.l3out,
     mso_schema_template_bd_subnet.bd_subnets,
     mso_schema_template_external_epg.ext_epg,
+    mso_schema_template_filter_entry.filter_entry,
+    mso_schema_template_contract_filter.con_filter,
   ]
 }
 
