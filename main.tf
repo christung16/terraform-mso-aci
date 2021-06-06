@@ -90,6 +90,19 @@ resource "aci_vmm_controller" "gen_com_ctrl" {
   relation_vmm_rs_acc = aci_vmm_credential.vmm_cred[each.value.name].id
 }
 
+resource "aci_attachable_access_entity_profile" "phydomain_aaep" {
+  for_each = var.phydomain
+  name = each.value.aaep_name
+  relation_infra_rs_dom_p = [ aci_physical_domain.phydom[each.value.name].id ]
+}
+
+
+resource "aci_physical_domain" "phydom" {
+  for_each = var.phydomain
+  name = each.value.name
+  relation_infra_rs_vlan_ns = aci_vlan_pool.vlan_pool[each.value.vlan_pool].id
+}
+
 resource "aci_cdp_interface_policy" "cdp" {
   for_each = var.cdp
   name = each.value.name
@@ -121,7 +134,8 @@ module "accessportgroup" {
     aci_cdp_interface_policy.cdp,
     aci_lldp_interface_policy.lldp,
 #    aci_lacp_policy.lacp,
-    aci_attachable_access_entity_profile.vmm_vmware_aaep
+    aci_attachable_access_entity_profile.vmm_vmware_aaep,
+    aci_attachable_access_entity_profile.phydomain_aaep,
   ]
 }
 
@@ -292,6 +306,8 @@ resource "mso_schema_template_filter_entry" "filter_entry" {
   entry_display_name = each.value.entry_display_name
   ether_type = each.value.ether_type
   ip_protocol = each.value.ip_protocol
+  destination_from = each.value.destination_from
+  destination_to = each.value.destination_to
   stateful = each.value.stateful
 #  depends_on = [
 #    mso_schema.schema
@@ -376,11 +392,12 @@ resource "mso_schema_template_external_epg" "ext_epg" {
   ]
 }
 
+/*
 resource "mso_schema_template_service_graph" "sg" {
   for_each = var.sg
   schema_id = mso_schema.schema.id
   template_name = var.template_name
-  service_graph_name = each.value.name
+  service_graph_name = format ("%s%s","sg-",each.value.name)
   service_node_type = each.value.service_node_type
   description = each.value.description
 
@@ -389,20 +406,22 @@ resource "mso_schema_template_service_graph" "sg" {
     content {
       site_id = mso_schema_site.schema_site1.id
       tenant_name = site_nodes.value.tenant_name
-      node_name = site_nodes.value.node_name
+      node_name = format ("%s%s", "site-node-", site_nodes.value.node_name)
     }
   }
   depends_on = [
-    mso_tenant.tn
+    mso_tenant.tn,
+    aci_rest.device,
   ]
 }
+*/
 
 resource "mso_schema_template_deploy" "this" {
   schema_id = mso_schema_site.schema_site1.schema_id
   template_name = var.template_name
   site_id = mso_schema_site.schema_site1.site_id
   depends_on = [
-    mso_schema_template_service_graph.sg,
+#    mso_schema_template_service_graph.sg,
     mso_schema_template_external_epg.ext_epg,
     mso_schema_template_anp_epg.epgs,
     mso_schema_template_anp_epg_contract.anp_epg_contract_provider,
@@ -411,39 +430,295 @@ resource "mso_schema_template_deploy" "this" {
     mso_schema_template_l3out.l3out,
     mso_schema_template_bd_subnet.bd_subnets,
     mso_schema_template_external_epg.ext_epg,
-    mso_schema_template_service_graph.sg,
   ]
 }
 
 data "aci_tenant" "this" {
   name = var.tenant.name
+  depends_on = [
+    mso_tenant.tn,
+  ]
 }
 
-################################################
-#Create L4-L7 Device on APIC in current release
-################################################
-
-/*
 # Create L4-L7 Device.
 resource "aci_rest" "device" {
     for_each = var.sg
     path    = "api/node/mo/${data.aci_tenant.this.id}/lDevVip-${each.value.name}.json"
-    payload = templatefile(
-        "${path.module}/template.json",
-        {
-#            annotation          = var.annotation
-            tenant_dn           = data.aci_tenant.this.id
-            device_name         = each.value.device_name
-            vmm_domain_dn       = aci_vmm_domain.vmm_domain["gen_com_vswitch"].id
-            vmm_controller_dn   = aci_vmm_controller.gen_com_ctrl["gen_com_vswitch"].id
-            vmm_controller_name = "gen_com_vswitch-controller"
-            vm_name             = each.value.name
-            internal_vnic       = "vmnic3"
-            external_vnic       = "vmnic3"
-        }
-    )
+    payload = <<EOF
+{
+		"vnsLDevVip": {
+			"attributes": {
+				"activeActive": "no",
+				"annotation": "",
+				"contextAware": "single-Context",
+				"devtype": "${each.value.devtype}",
+				"dn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}",
+				"funcType": "GoTo",
+				"isCopy": "no",
+				"managed": "no",
+				"mode": "legacy-Mode",
+				"name": ${each.value.name},
+				"nameAlias": "",
+				"packageModel": "",
+				"promMode": "no",
+				"svcType": "FW",
+				"trunking": "no",
+				"userdom": ":all:"
+			},
+			"children": [{
+				"vnsRsALDevToPhysDomP": {
+					"attributes": {
+						"annotation": "",
+						"tDn": "uni/phys-${each.value.phydomain_name}",
+						"userdom": ":all:"
+					}
+				}
+			}, {
+				"vnsLIf": {
+					"attributes": {
+						"annotation": "",
+						"encap": "${each.value.vlan}",
+						"lagPolicyName": "",
+						"name": "cl-${each.value.name}",
+						"nameAlias": "",
+						"userdom": ":all:"
+					},
+					"children": [{
+						"vnsRsCIfAttN": {
+							"attributes": {
+								"annotation": "",
+								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.leaf_block}-${each.value.card}-${each.value.port}/cIf-[${each.value.leaf_block}-${each.value.card}-${each.value.port}]",
+								"userdom": ":all:"
+							}
+						}
+					}]
+				}
+			}, {
+				"vnsCDev": {
+					"attributes": {
+						"annotation": "",
+						"cloneCount": "0",
+						"devCtxLbl": "",
+						"host": "",
+						"isCloneOperation": "no",
+						"isTemplate": "no",
+						"name": "${each.value.name}-intf-${each.value.leaf_block}-${each.value.card}-${each.value.port}",
+						"nameAlias": "",
+						"userdom": ":all:",
+						"vcenterName": "",
+						"vmName": ""
+					},
+					"children": [{
+						"vnsCIf": {
+							"attributes": {
+								"annotation": "",
+								"encap": "unknown",
+								"name": "${each.value.leaf_block}-${each.value.card}-${each.value.port}",
+								"nameAlias": "",
+								"userdom": ":all:",
+								"vnicName": ""
+							},
+							"children": [{
+								"vnsRsCIfPathAtt": {
+									"attributes": {
+										"annotation": "",
+										"tDn": "topology/pod-1/paths-${each.value.leaf_block}/pathep-[eth${each.value.card}/${each.value.port}]",
+										"userdom": ":all:"
+									}
+								}
+							}]
+						}
+					}]
+				}
+			}]
+		}
+	}
+EOF
 }
-*/
+
+# Create L4-L7 Service Graph template.
+resource "aci_l4_l7_service_graph_template" "this" {
+    for_each = var.sg
+    tenant_dn                         = data.aci_tenant.this.id
+    name                              = format ("%s%s", "sg-",each.value.name)
+    description                       = each.value.description
+    l4_l7_service_graph_template_type = "legacy"
+    ui_template_type                  = "UNSPECIFIED"
+}
+
+# Create L4-L7 Service Graph template node.
+resource "aci_function_node" "this" {
+    for_each = var.sg
+    l4_l7_service_graph_template_dn = aci_l4_l7_service_graph_template.this[each.value.name].id
+    name                            = each.value.site_nodes[0].node_name
+    func_template_type              = "FW_ROUTED"
+    func_type                       = "GoTo"
+    is_copy                         = "no"
+    managed                         = "no"
+    routing_mode                    = "Redirect"
+    sequence_number                 = "0"
+    share_encap                     = "no"
+    relation_vns_rs_node_to_l_dev   = "${data.aci_tenant.this.id}/lDevVip-${each.value.name}"
+}
+
+# Create L4-L7 Service Graph template T1 connection.
+resource "aci_connection" "t1-n1" {
+    for_each = var.sg
+    l4_l7_service_graph_template_dn = aci_l4_l7_service_graph_template.this[each.value.name].id
+    name           = "C2"
+    adj_type       = "L3"
+    conn_dir       = "provider"
+    conn_type      = "external"
+    direct_connect = "no"
+    unicast_route  = "yes"
+    relation_vns_rs_abs_connection_conns = [
+        aci_l4_l7_service_graph_template.this[each.value.name].term_prov_dn,
+        aci_function_node.this[each.value.name].conn_provider_dn
+    ]
+}
+
+# Create L4-L7 Service Graph template T2 connection.
+resource "aci_connection" "n1-t2" {
+    for_each = var.sg
+    l4_l7_service_graph_template_dn = aci_l4_l7_service_graph_template.this[each.value.name].id
+    name                            = "C1"
+    adj_type                        = "L3"
+    conn_dir                        = "provider"
+    conn_type                       = "external"
+    direct_connect                  = "no"
+    unicast_route                   = "yes"
+    relation_vns_rs_abs_connection_conns = [
+        aci_l4_l7_service_graph_template.this[each.value.name].term_cons_dn,
+        aci_function_node.this[each.value.name].conn_consumer_dn
+    ]
+}
+
+# Create L4-L7 Logical Device Context / Devices Selection Policies.
+resource "aci_logical_device_context" "this" {
+    for_each = var.sg
+    tenant_dn                          = data.aci_tenant.this.id
+    ctrct_name_or_lbl                  = each.value.contract_name
+    graph_name_or_lbl                  = format ("%s%s", "sg-",each.value.name)
+    node_name_or_lbl                   = aci_function_node.this[each.value.name].name
+#    relation_vns_rs_l_dev_ctx_to_l_dev = "${data.aci_tenant.this.id}/lDevVip-${each.value.name}"
+    relation_vns_rs_l_dev_ctx_to_l_dev = aci_rest.device[each.value.name].id
+
+}
+
+data "aci_bridge_domain" "bds" {
+  for_each = var.sg
+  tenant_dn = data.aci_tenant.this.id
+  name = each.value.bd_name
+  depends_on = [
+    mso_schema_template_deploy.this
+  ]
+}
+
+# Create L4-L7 Logical Device Interface Contexts.
+resource "aci_logical_interface_context" "consumer" {
+  for_each = var.sg
+	logical_device_context_dn        = aci_logical_device_context.this[each.value.name].id
+	conn_name_or_lbl                 = "consumer"
+	l3_dest                          = "yes"
+	permit_log                       = "no"
+  relation_vns_rs_l_if_ctx_to_l_if = "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/lIf-cl-${each.value.name}"
+  relation_vns_rs_l_if_ctx_to_bd   = data.aci_bridge_domain.bds[each.value.name].id
+  relation_vns_rs_l_if_ctx_to_svc_redirect_pol = aci_service_redirect_policy.pbr[each.value.pbr_name].id
+  depends_on = [
+    aci_rest.device,
+  ]
+}
+
+resource "aci_logical_interface_context" "provider" {
+  for_each = var.sg
+	logical_device_context_dn        = aci_logical_device_context.this[each.value.name].id
+	conn_name_or_lbl                 = "provider"
+	l3_dest                          = "yes"
+	permit_log                       = "no"
+  relation_vns_rs_l_if_ctx_to_l_if = "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/lIf-cl-${each.value.name}"
+  relation_vns_rs_l_if_ctx_to_bd   = data.aci_bridge_domain.bds[each.value.name].id
+  relation_vns_rs_l_if_ctx_to_svc_redirect_pol = aci_service_redirect_policy.pbr[each.value.pbr_name].id
+  depends_on = [
+    aci_rest.device,
+  ]
+}
+
+data "aci_l4_l7_service_graph_template" "sg_template" {
+  for_each = var.sg
+  tenant_dn = data.aci_tenant.this.id
+  name = format ("%s%s", "sg-", each.value.name)
+  depends_on = [
+    mso_schema_template_deploy.this
+  ]
+}
+
+resource "aci_contract_subject" "subj" {
+  for_each = var.sg
+  contract_dn = "${data.aci_tenant.this.id}/brc-${each.value.contract_name}"
+  name = "msc-subject"
+  relation_vz_rs_subj_graph_att = data.aci_l4_l7_service_graph_template.sg_template[each.value.name].id
+}
+
+# Create IP SLA Monitoring Policy
+resource "aci_rest" "ipsla" {
+    for_each = var.pbr
+    path    = "api/node/mo/${data.aci_tenant.this.id}/ipslaMonitoringPol-${each.value.ipsla_name}.json"
+    payload = <<EOF
+{
+	"fvIPSLAMonitoringPol": {
+		"attributes": {
+			"dn": "${data.aci_tenant.this.id}/ipslaMonitoringPol-${each.value.ipsla_name}",
+			"name": "${each.value.ipsla_name}",
+			"rn": "ipslaMonitoringPol-${each.value.ipsla_name}",
+			"status": "created"
+		},
+		"children": []
+	}
+}
+EOF  
+}
+
+# Create Redirect Health Group
+resource "aci_rest" "rh" {
+    for_each = var.pbr
+    path    = "api/node/mo/${data.aci_tenant.this.id}/svcCont/redirectHealthGroup-${each.value.rh_grp_name}.json"
+    payload = <<EOF
+{
+	"vnsRedirectHealthGroup": {
+		"attributes": {
+			"dn": "${data.aci_tenant.this.id}/svcCont/redirectHealthGroup-${each.value.rh_grp_name}",
+			"name": "${each.value.rh_grp_name}",
+			"rn": "redirectHealthGroup-${each.value.rh_grp_name}",
+			"status": "created"
+		},
+		"children": []
+	}
+}
+EOF
+}
+
+resource "aci_service_redirect_policy" "pbr" {
+  for_each = var.pbr
+  tenant_dn = data.aci_tenant.this.id
+  name = each.value.name
+  dest_type = "L3"
+#  relation_vns_rs_ipsla_monitoring_pol = "${data.aci_tenant.this.id}/ipslaMonitoringPol-${each.value.ipsla_name}"
+  relation_vns_rs_ipsla_monitoring_pol = aci_rest.ipsla[each.value.name].id
+}
+
+resource "aci_destination_of_redirected_traffic" "pbr" {
+  for_each = var.pbr
+  service_redirect_policy_dn = aci_service_redirect_policy.pbr[each.value.name].id
+  ip = each.value.ip
+  mac = each.value.mac
+#  relation_vns_rs_redirect_health_group = "${data.aci_tenant.this.id}/svcCont/redirectHealthGroup-${each.value.rh_grp_name}"
+  relation_vns_rs_redirect_health_group = aci_rest.rh[each.value.name].id
+}
+
+
+
+
+
 
 
 

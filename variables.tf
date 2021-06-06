@@ -73,10 +73,18 @@ variable "vmm_vmware" {
   type = map(any)
 }
 
+variable "phydomain" {
+  type = map (any)
+}
+
 variable "access_port_group_policy" {
   type = map(any)
 }
 
 variable "sg" {
+  type = map(any)
+}
+
+variable "pbr" {
   type = map(any)
 }
