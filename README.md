@@ -1,12 +1,14 @@
-## Terraform Config for ACI and MSO
+## Terraform Integrate ACI and MSO Configuration
 
-By leveraging the advantage of Terraform IaC characteristic (https://developer.cisco.com/iac/), it can be easily and consistently build and rebuild the ACI/MSO VMM integration PoC. It also integrates both controllers config into a single configuration file (.tfvars). It is much more human readable and easily to make the changes.
+By leveraging the advantage of Terraform IaC characteristic (https://developer.cisco.com/iac/), it can be easily and consistently build and rebuild the ACI/MSO VMM integration and other features PoC. It also integrates both controllers config into a single configuration file (.tfvars). It is much more human readable and easily to make the changes.
 
 The repository is to demonstrate how to use Terraform to provision underlay resources, VMM Integration from APIC and overlay resources from MSO in one single config file so that you can easily and consistently build and rebuild a ACI demo everytime. You just need to create different config file for different customers while using the same main.tf. And the config file is structural json format and human readable. You don't even need modify the main.tf if they consume same resources.
 
 Another purpose of this repository is to learn a very consistent way to build your own main.tf. How to handle json type configuration in terraform for network resources. Learn how to manupilate different data structure type which usually used in network environment.
 
 ## Use Case Description
+
+Update 20210607: Add One-arm-firewall using PBR including physical port configuration.
 
 In this repository, it shows more than 40 ACI/MSO resources:
 
