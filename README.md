@@ -8,7 +8,7 @@ Another purpose of this repository is to learn a very consistent way to build yo
 
 ## Use Case Description
 
-Update 20210607: Add One-arm-firewall using PBR including physical port configuration.
+Update 20210607: Add One-arm-firewall using Service Graph and PBR including physical port configuration.
 
 In this repository, it shows more than 40 ACI/MSO resources:
 
