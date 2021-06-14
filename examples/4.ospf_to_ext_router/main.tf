@@ -118,7 +118,7 @@ resource "aci_lldp_interface_policy" "lldp" {
 }
 
 module "accessportgroup" {
-  source = "./modules/accessportgroup"
+  source = "../modules/accessportgroup"
   for_each = var.access_port_group_policy
   name = each.value.name
   lldp_status = each.value.lldp_status
@@ -409,7 +409,6 @@ resource "mso_schema_template_deploy" "this" {
   ]
 }
 
-/*
 data "aci_tenant" "this" {
   name = var.tenant.name
   depends_on = [
@@ -692,4 +691,3 @@ resource "aci_destination_of_redirected_traffic" "pbr" {
   relation_vns_rs_redirect_health_group = aci_rest.rh[each.value.name].id
 }
 
-*/
