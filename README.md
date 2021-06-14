@@ -8,6 +8,12 @@ Another purpose of this repository is to learn a very consistent way to build yo
 
 ## Use Case Description
 
+Update 20210614: Rearrange the use case into the example folders. Add ospf-to-ext-router using L3out. Rearrange 4 examples into the example folders:
+   i.   simple 2-tier applications
+   ii.  simple 3-tier applications
+   iii. one-arm-firewall
+   iv.  ospf to external router
+
 Update 20210607: Add One-arm-firewall using Service Graph and PBR including physical port configuration.
 
 In this repository, it shows more than 40 ACI/MSO resources:
