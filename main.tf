@@ -391,12 +391,31 @@ data "mso_schema_template" "template" {
 }
 */
 
+resource "mso_schema_template_service_graph" "sg" {
+  for_each = var.sg
+  schema_id = mso_schema.schema.id
+  template_name = mso_schema.schema.template_name
+  service_graph_name = each.value.name
+  service_node_type = each.value.service_node_type
+  description = each.value.description
+  dynamic "site_nodes" {
+    for_each = each.value.site_nodes
+    content {
+      site_id = mso_schema_site.schema_site1.site_id
+      tenant_name = site_nodes.value["tenant_name"]
+      node_name = site_nodes.value["node_name"]
+    }
+  }
+}
+
+resource "mso_schema"
+
 resource "mso_schema_template_deploy" "this" {
   schema_id = mso_schema.schema.id
   template_name = mso_schema.schema.template_name
   site_id = mso_schema_site.schema_site1.site_id
   depends_on = [
-#    mso_schema_template_service_graph.sg,
+    mso_schema_template_service_graph.sg,
     mso_schema_template_anp_epg.epgs,
     mso_schema_template_anp_epg_contract.anp_epg_contract_provider,
     mso_schema_template_anp_epg_contract.anp_epg_contract_consumer,
@@ -409,7 +428,7 @@ resource "mso_schema_template_deploy" "this" {
   ]
 }
 
-/*
+
 data "aci_tenant" "this" {
   name = var.tenant.name
   depends_on = [
@@ -417,7 +436,6 @@ data "aci_tenant" "this" {
   ]
 }
 
-# Create L4-L7 Device.
 resource "aci_rest" "device" {
     for_each = var.sg
     path    = "api/node/mo/${data.aci_tenant.this.id}/lDevVip-${each.value.name}.json"
@@ -434,7 +452,7 @@ resource "aci_rest" "device" {
 				"isCopy": "no",
 				"managed": "no",
 				"mode": "legacy-Mode",
-				"name": ${each.value.name},
+				"name": "${each.value.name}",
 				"nameAlias": "",
 				"packageModel": "",
 				"promMode": "no",
@@ -454,9 +472,9 @@ resource "aci_rest" "device" {
 				"vnsLIf": {
 					"attributes": {
 						"annotation": "",
-						"encap": "${each.value.vlan}",
+						"encap": "${each.value.outside_vlan}",
 						"lagPolicyName": "",
-						"name": "cl-${each.value.name}",
+						"name": "cl-${each.value.outside_vlan}",
 						"nameAlias": "",
 						"userdom": ":all:"
 					},
@@ -464,7 +482,27 @@ resource "aci_rest" "device" {
 						"vnsRsCIfAttN": {
 							"attributes": {
 								"annotation": "",
-								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.leaf_block}-${each.value.card}-${each.value.port}/cIf-[${each.value.leaf_block}-${each.value.card}-${each.value.port}]",
+								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}/cIf-[${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}]",
+								"userdom": ":all:"
+							}
+						}
+					}]
+				}
+			}, {
+				"vnsLIf": {
+					"attributes": {
+						"annotation": "",
+						"encap": "${each.value.inside_vlan}",
+						"lagPolicyName": "",
+						"name": "cl-${each.value.inside_vlan}",
+						"nameAlias": "",
+						"userdom": ":all:"
+					},
+					"children": [{
+						"vnsRsCIfAttN": {
+							"attributes": {
+								"annotation": "",
+								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}/cIf-[${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}]",
 								"userdom": ":all:"
 							}
 						}
@@ -479,7 +517,7 @@ resource "aci_rest" "device" {
 						"host": "",
 						"isCloneOperation": "no",
 						"isTemplate": "no",
-						"name": "${each.value.name}-intf-${each.value.leaf_block}-${each.value.card}-${each.value.port}",
+						"name": "${each.value.name}",
 						"nameAlias": "",
 						"userdom": ":all:",
 						"vcenterName": "",
@@ -490,7 +528,7 @@ resource "aci_rest" "device" {
 							"attributes": {
 								"annotation": "",
 								"encap": "unknown",
-								"name": "${each.value.leaf_block}-${each.value.card}-${each.value.port}",
+								"name": "${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}-${each.value.outside_vlan}",
 								"nameAlias": "",
 								"userdom": ":all:",
 								"vnicName": ""
@@ -499,7 +537,27 @@ resource "aci_rest" "device" {
 								"vnsRsCIfPathAtt": {
 									"attributes": {
 										"annotation": "",
-										"tDn": "topology/pod-1/paths-${each.value.leaf_block}/pathep-[eth${each.value.card}/${each.value.port}]",
+										"tDn": "topology/pod-1/paths-${each.value.outside_leaf_block}/pathep-[eth${each.value.outside_card}/${each.value.outside_port}]",
+										"userdom": ":all:"
+									}
+								}
+							}]
+						}
+					}, {
+						"vnsCIf": {
+							"attributes": {
+								"annotation": "",
+								"encap": "unknown",
+								"name": "${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}-${each.value.inside_vlan}",
+								"nameAlias": "",
+								"userdom": ":all:",
+								"vnicName": ""
+							},
+							"children": [{
+								"vnsRsCIfPathAtt": {
+									"attributes": {
+										"annotation": "",
+										"tDn": "topology/pod-1/paths-${each.value.inside_leaf_block}/pathep-[eth${each.value.inside_card}/${each.value.inside_port}]",
 										"userdom": ":all:"
 									}
 								}
@@ -513,6 +571,9 @@ resource "aci_rest" "device" {
 EOF
 }
 
+
+
+/*
 # Create L4-L7 Service Graph template.
 resource "aci_l4_l7_service_graph_template" "this" {
     for_each = var.sg
@@ -691,5 +752,6 @@ resource "aci_destination_of_redirected_traffic" "pbr" {
 #  relation_vns_rs_redirect_health_group = "${data.aci_tenant.this.id}/svcCont/redirectHealthGroup-${each.value.rh_grp_name}"
   relation_vns_rs_redirect_health_group = aci_rest.rh[each.value.name].id
 }
+
 
 */
