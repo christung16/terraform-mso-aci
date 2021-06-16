@@ -139,6 +139,147 @@ module "accessportgroup" {
   ]
 }
 
+data "aci_tenant" "this" {
+  name = var.tenant.name
+  depends_on = [
+    mso_tenant.tn,
+  ]
+}
+
+resource "aci_rest" "device" {
+    for_each = var.sg
+    path    = "api/node/mo/${data.aci_tenant.this.id}/lDevVip-${each.value.name}.json"
+    payload = <<EOF
+{
+		"vnsLDevVip": {
+			"attributes": {
+				"activeActive": "no",
+				"annotation": "",
+				"contextAware": "single-Context",
+				"devtype": "${each.value.devtype}",
+				"dn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}",
+				"funcType": "GoTo",
+				"isCopy": "no",
+				"managed": "no",
+				"mode": "legacy-Mode",
+				"name": "${each.value.name}",
+				"nameAlias": "",
+				"packageModel": "",
+				"promMode": "no",
+				"svcType": "FW",
+				"trunking": "no",
+				"userdom": ":all:"
+			},
+			"children": [{
+				"vnsRsALDevToPhysDomP": {
+					"attributes": {
+						"annotation": "",
+						"tDn": "uni/phys-${each.value.phydomain_name}",
+						"userdom": ":all:"
+					}
+				}
+			}, {
+				"vnsLIf": {
+					"attributes": {
+						"annotation": "",
+						"encap": "${each.value.outside_vlan}",
+						"lagPolicyName": "",
+						"name": "cl-${each.value.outside_vlan}",
+						"nameAlias": "",
+						"userdom": ":all:"
+					},
+					"children": [{
+						"vnsRsCIfAttN": {
+							"attributes": {
+								"annotation": "",
+								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}/cIf-[${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}]",
+								"userdom": ":all:"
+							}
+						}
+					}]
+				}
+			}, {
+				"vnsLIf": {
+					"attributes": {
+						"annotation": "",
+						"encap": "${each.value.inside_vlan}",
+						"lagPolicyName": "",
+						"name": "cl-${each.value.inside_vlan}",
+						"nameAlias": "",
+						"userdom": ":all:"
+					},
+					"children": [{
+						"vnsRsCIfAttN": {
+							"attributes": {
+								"annotation": "",
+								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}/cIf-[${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}]",
+								"userdom": ":all:"
+							}
+						}
+					}]
+				}
+			}, {
+				"vnsCDev": {
+					"attributes": {
+						"annotation": "",
+						"cloneCount": "0",
+						"devCtxLbl": "",
+						"host": "",
+						"isCloneOperation": "no",
+						"isTemplate": "no",
+						"name": "${each.value.name}",
+						"nameAlias": "",
+						"userdom": ":all:",
+						"vcenterName": "",
+						"vmName": ""
+					},
+					"children": [{
+						"vnsCIf": {
+							"attributes": {
+								"annotation": "",
+								"encap": "unknown",
+								"name": "${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}-${each.value.outside_vlan}",
+								"nameAlias": "",
+								"userdom": ":all:",
+								"vnicName": ""
+							},
+							"children": [{
+								"vnsRsCIfPathAtt": {
+									"attributes": {
+										"annotation": "",
+										"tDn": "topology/pod-1/paths-${each.value.outside_leaf_block}/pathep-[eth${each.value.outside_card}/${each.value.outside_port}]",
+										"userdom": ":all:"
+									}
+								}
+							}]
+						}
+					}, {
+						"vnsCIf": {
+							"attributes": {
+								"annotation": "",
+								"encap": "unknown",
+								"name": "${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}-${each.value.inside_vlan}",
+								"nameAlias": "",
+								"userdom": ":all:",
+								"vnicName": ""
+							},
+							"children": [{
+								"vnsRsCIfPathAtt": {
+									"attributes": {
+										"annotation": "",
+										"tDn": "topology/pod-1/paths-${each.value.inside_leaf_block}/pathep-[eth${each.value.inside_card}/${each.value.inside_port}]",
+										"userdom": ":all:"
+									}
+								}
+							}]
+						}
+					}]
+				}
+			}]
+		}
+	}
+EOF
+}
 
 data "mso_site" "site1" {
   name = var.mso_site
@@ -408,7 +549,21 @@ resource "mso_schema_template_service_graph" "sg" {
   }
 }
 
-resource "mso_schema"
+/*
+resource "mso_schema_template_contract_service_graph" "con_sg" {
+  for_each = var.sg
+  schema_id = mso_schema.schema.id
+  template_name = mso_schema.schema.template_name
+  site_id = data.mso_site.site1.id
+  contract_name = each.value.contract_name
+  node_relationship {
+    provider_connector_bd_name = each.value.inside_bd_name
+    consumer_connector_bd_name = each.value.outside_bd_name
+    provider_connector_cluster_interface
+  }
+
+}
+*/
 
 resource "mso_schema_template_deploy" "this" {
   schema_id = mso_schema.schema.id
@@ -429,147 +584,7 @@ resource "mso_schema_template_deploy" "this" {
 }
 
 
-data "aci_tenant" "this" {
-  name = var.tenant.name
-  depends_on = [
-    mso_tenant.tn,
-  ]
-}
 
-resource "aci_rest" "device" {
-    for_each = var.sg
-    path    = "api/node/mo/${data.aci_tenant.this.id}/lDevVip-${each.value.name}.json"
-    payload = <<EOF
-{
-		"vnsLDevVip": {
-			"attributes": {
-				"activeActive": "no",
-				"annotation": "",
-				"contextAware": "single-Context",
-				"devtype": "${each.value.devtype}",
-				"dn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}",
-				"funcType": "GoTo",
-				"isCopy": "no",
-				"managed": "no",
-				"mode": "legacy-Mode",
-				"name": "${each.value.name}",
-				"nameAlias": "",
-				"packageModel": "",
-				"promMode": "no",
-				"svcType": "FW",
-				"trunking": "no",
-				"userdom": ":all:"
-			},
-			"children": [{
-				"vnsRsALDevToPhysDomP": {
-					"attributes": {
-						"annotation": "",
-						"tDn": "uni/phys-${each.value.phydomain_name}",
-						"userdom": ":all:"
-					}
-				}
-			}, {
-				"vnsLIf": {
-					"attributes": {
-						"annotation": "",
-						"encap": "${each.value.outside_vlan}",
-						"lagPolicyName": "",
-						"name": "cl-${each.value.outside_vlan}",
-						"nameAlias": "",
-						"userdom": ":all:"
-					},
-					"children": [{
-						"vnsRsCIfAttN": {
-							"attributes": {
-								"annotation": "",
-								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}/cIf-[${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}]",
-								"userdom": ":all:"
-							}
-						}
-					}]
-				}
-			}, {
-				"vnsLIf": {
-					"attributes": {
-						"annotation": "",
-						"encap": "${each.value.inside_vlan}",
-						"lagPolicyName": "",
-						"name": "cl-${each.value.inside_vlan}",
-						"nameAlias": "",
-						"userdom": ":all:"
-					},
-					"children": [{
-						"vnsRsCIfAttN": {
-							"attributes": {
-								"annotation": "",
-								"tDn": "${data.aci_tenant.this.id}/lDevVip-${each.value.name}/cDev-${each.value.name}-intf-${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}/cIf-[${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}]",
-								"userdom": ":all:"
-							}
-						}
-					}]
-				}
-			}, {
-				"vnsCDev": {
-					"attributes": {
-						"annotation": "",
-						"cloneCount": "0",
-						"devCtxLbl": "",
-						"host": "",
-						"isCloneOperation": "no",
-						"isTemplate": "no",
-						"name": "${each.value.name}",
-						"nameAlias": "",
-						"userdom": ":all:",
-						"vcenterName": "",
-						"vmName": ""
-					},
-					"children": [{
-						"vnsCIf": {
-							"attributes": {
-								"annotation": "",
-								"encap": "unknown",
-								"name": "${each.value.outside_leaf_block}-${each.value.outside_card}-${each.value.outside_port}-${each.value.outside_vlan}",
-								"nameAlias": "",
-								"userdom": ":all:",
-								"vnicName": ""
-							},
-							"children": [{
-								"vnsRsCIfPathAtt": {
-									"attributes": {
-										"annotation": "",
-										"tDn": "topology/pod-1/paths-${each.value.outside_leaf_block}/pathep-[eth${each.value.outside_card}/${each.value.outside_port}]",
-										"userdom": ":all:"
-									}
-								}
-							}]
-						}
-					}, {
-						"vnsCIf": {
-							"attributes": {
-								"annotation": "",
-								"encap": "unknown",
-								"name": "${each.value.inside_leaf_block}-${each.value.inside_card}-${each.value.inside_port}-${each.value.inside_vlan}",
-								"nameAlias": "",
-								"userdom": ":all:",
-								"vnicName": ""
-							},
-							"children": [{
-								"vnsRsCIfPathAtt": {
-									"attributes": {
-										"annotation": "",
-										"tDn": "topology/pod-1/paths-${each.value.inside_leaf_block}/pathep-[eth${each.value.inside_card}/${each.value.inside_port}]",
-										"userdom": ":all:"
-									}
-								}
-							}]
-						}
-					}]
-				}
-			}]
-		}
-	}
-EOF
-}
 
 
 
