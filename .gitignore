@@ -1,6 +1,5 @@
 .terraform*
 terraform.tfstate*
-terraform.tfvars
 dvsuplink
 terraform.tfvars.*.old
 *.old
