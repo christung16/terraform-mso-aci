@@ -66,6 +66,12 @@ vlan_pool = {
         from = "vlan-2501"
         to = "vlan-2501"
     }
+    ucs_server_vlan_pool = {
+        name = "asa_phy_vlan_pool"
+        alloc_mode = "static"
+        from = "vlan-478"
+        to = "vlan-478"
+    }
 }
 
 vmm_vmware = {
@@ -90,7 +96,11 @@ phydomain = {
         vlan_pool = "asa_phy_vlan_pool"
         aaep_name = "aaep_asa_phydomain"
     }
-
+    ucs_server_phydomain = {
+        name = "ucs_server_phydomain"
+        vlan_pool = "ucs_server_vlan_pool"
+        aaep_name = "aaep_ucs_server_phydomain"
+    }
 }
 
 l3domain = {
@@ -109,6 +119,20 @@ access_port_group_policy = {
         to_card = 1
         to_port = 12
     }
+
+    leaf_access_port_101_1_22_24_ucs_server_phydomain = {
+        name = "leaf_access_port_101_1_22_24_ucs_server_phydomain"
+        lldp_status = "gen_com_lldp_disable"
+        cdp_status = "gen_com_cdp_enable"
+        aaep_name = "aaep_ucs_server_phydomain"
+        leaf_profile = "leaf-101-Chris-profile"
+        leaf_block = 101
+        from_card = 1
+        from_port = 22
+        to_card = 1
+        to_port = 24
+    }
+
     leaf_access_port_101_1_20_phydomain = {
         name = "leaf_access_port_101_1_20_phydomain"
         lldp_status = "gen_com_lldp_disable"
