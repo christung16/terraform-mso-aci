@@ -8,6 +8,29 @@ Another purpose of this repository is to learn a very consistent way to build yo
 
 ## Use Case Description
 
+Update 20210630: enhance the accessportgroup module:
+1. accept multiple leaf_block per leaf profile
+2. accept multiple port block per leaf profile
+
+example: 
+    leaf_access_port_101_1_22_24_ucs_phydomain = {
+        name = "leaf_access_port_101_1_22_24_ucs_phydomain"
+        lldp_status = "gen_com_lldp_disable"
+        cdp_status = "gen_com_cdp_enable"
+        aaep_name = "aaep_ucs_phydomain"
+        leaf_profile = "leaf-101-104-Chris-profile"
+        leaf_block = [101, 104]
+        ports = [
+            {
+                from_card = 1
+                from_port = 22
+                to_card = 1
+                to_port = 24
+            }
+        ]
+    }
+
+
 Update 20210614: Rearrange the use case into the example folders. Add ospf-to-ext-router using L3out. Rearrange 4 examples into the example folders:
 1. simple 2-tier applications
 2. simple 3-tier applications
