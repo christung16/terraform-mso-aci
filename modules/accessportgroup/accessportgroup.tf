@@ -30,9 +30,14 @@ variable "leaf_profile" {
 }
 
 variable "leaf_block" {
-  type = string
+  type = list
 }
 
+variable "ports" {
+  type = list
+}
+
+/*
 variable "from_card" {
   type = string
 }
@@ -48,7 +53,7 @@ variable "to_card" {
 variable "to_port" {
   type = string
 }
-
+*/
 
 
 /*
@@ -87,26 +92,51 @@ resource "aci_leaf_interface_profile" "leaf_interface_profile" {
 }
 
 resource "aci_access_port_selector" "access_port_selector" {
+  for_each = {
+    for port in var.ports: "${var.name}.${port.from_card}-${port.from_port}.${port.to_card}-${port.to_port}" => port 
+  }
   leaf_interface_profile_dn = aci_leaf_interface_profile.leaf_interface_profile.id
-  name = format("%s%s",var.name,"_port_selector")
+  name = format("%s%s",each.key,"_selector")
   access_port_selector_type = "range"
   relation_infra_rs_acc_base_grp = aci_leaf_access_port_policy_group.leaf_access_port_pg.id
 }
 
 resource "aci_access_port_block" "access_port_block" {
-  access_port_selector_dn = aci_access_port_selector.access_port_selector.id
+  for_each = { 
+    for port in var.ports: "${var.name}.${port.from_card}-${port.from_port}.${port.to_card}-${port.to_port}" => port 
+  }
+  access_port_selector_dn = aci_access_port_selector.access_port_selector[each.key].id
   name = format("%s%s",var.name,"_port_block")
+  from_card = each.value.from_card
+  from_port = each.value.from_port
+  to_card = each.value.to_card
+  to_port = each.value.to_port
+/*
   from_card = var.from_card
   from_port = var.from_port
   to_card = var.to_card
   to_port = var.to_port
+*/
 }
 
 resource "aci_leaf_profile" "leaf_profile" {        
   name = var.leaf_profile
-  relation_infra_rs_acc_port_p = [aci_leaf_interface_profile.leaf_interface_profile.id]
+  relation_infra_rs_acc_port_p = [ aci_leaf_interface_profile.leaf_interface_profile.id ]
+  leaf_selector {
+    name = format("%s%s",var.leaf_profile,"_leaf_selector")
+    switch_association_type = "range"
+    dynamic "node_block" {
+      for_each = { for leaf_block in var.leaf_block : leaf_block => leaf_block }
+      content {
+        name = format("%s%s","node_",node_block.value)
+        from_ = node_block.value
+        to_ = node_block.value
+      }
+    }
+  }
 }
 
+/*
 resource "aci_leaf_selector" "leaf_selector" {
   leaf_profile_dn = aci_leaf_profile.leaf_profile.id
   name = format("%s%s", var.leaf_profile,"_leaf_selector")
@@ -115,7 +145,8 @@ resource "aci_leaf_selector" "leaf_selector" {
 
 resource "aci_node_block" "node_block" {
   switch_association_dn = aci_leaf_selector.leaf_selector.id
-  name = format("%s%s", var.leaf_profile,"_leaf_nodes")
-  from_ = var.leaf_block
-  to_ = var.leaf_block
+  name = format("%s%s", var.leaf_block[*],"_leaf_nodes")
+  from_ = var.leaf_block[*]
+  to_ = var.leaf_block[*]
 }
+*/

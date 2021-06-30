@@ -126,10 +126,11 @@ module "accessportgroup" {
   aaep_name = each.value.aaep_name
   leaf_profile = each.value.leaf_profile
   leaf_block = each.value.leaf_block
-  from_card = each.value.from_card
-  from_port = each.value.from_port
-  to_card = each.value.to_card
-  to_port = each.value.to_port
+#  from_card = each.value.from_card
+#  from_port = each.value.from_port
+#  to_card = each.value.to_card
+#  to_port = each.value.to_port
+  ports = each.value.ports
   depends_on = [
     aci_cdp_interface_policy.cdp,
     aci_lldp_interface_policy.lldp,
