@@ -4,7 +4,7 @@ terraform {
   required_providers {
     mso = {
       source = "CiscoDevNet/mso"
-      version = "0.1.5"
+      version = "0.2.0"
     }
     aci = {
       source = "CiscoDevNet/aci"
@@ -83,7 +83,7 @@ resource "aci_vmm_controller" "gen_com_ctrl" {
   for_each = var.vmm_vmware
   vmm_domain_dn = aci_vmm_domain.vmm_domain[each.value.name].id
   name = format( "%s%s", each.value.name,"-controller")
-  host_or_ip = each.value.vcenter_host_or_ip
+  host_or_ip = var.vcenter_user.url
   root_cont_name = each.value.vcenter_datacenter_name
   dvs_version = each.value.dvs_version
 #  relation_vmm_rs_acc = format ( "%s%s%s%s%s", "uni/vmmp-VMware/dom-",each.value.name,"/usracc-",each.value.name,"-credential")
@@ -118,7 +118,7 @@ resource "aci_lldp_interface_policy" "lldp" {
 }
 
 module "accessportgroup" {
-  source = "./modules/accessportgroup"
+  source = "../modules/accessportgroup"
   for_each = var.access_port_group_policy
   name = each.value.name
   lldp_status = each.value.lldp_status

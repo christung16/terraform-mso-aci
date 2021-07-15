@@ -4,11 +4,11 @@ terraform {
   required_providers {
     mso = {
       source = "CiscoDevNet/mso"
-      version = "0.1.5"
+      version = "0.2.0"
     }
     aci = {
       source = "CiscoDevNet/aci"
-      version = "0.7.0"
+      version = "0.7.1"
     }
     vsphere = {
       source = "hashicorp/vsphere"
